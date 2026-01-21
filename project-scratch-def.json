@@ -1,0 +1,22 @@
+{
+  "orgName": "Cactusforce",
+  "edition": "Developer",  
+  "features": ["EnableSetPasswordInApi","DebugApex","EventLogFile",
+    "PlatformCache","SalesUser","Einstein1AIPlatform"],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    }, 
+    "chatterSettings": {
+      "enableChatter": true
+    },    
+    "einsteinGptSettings" : {
+      "enableEinsteinGptPlatform" : true
+    },       
+    "securitySettings": {
+      "passwordPolicies": {
+        "minimumPasswordLength": "8"
+      }
+    }
+  }
+}
