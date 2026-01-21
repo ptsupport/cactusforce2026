@@ -1,0 +1,24 @@
+{
+  "packageDirectories": [
+    {
+      "versionName": "ver 0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "path": "force-app",
+      "default": true,
+      "dependencies": [
+        {
+          "package": "04tbV0000000LCXQA2"
+        }
+      ],
+      "package": "CactusUnlocked",
+      "versionDescription": ""
+    }
+  ],
+  "name": "cactus",
+  "namespace": "",
+  "sfdcLoginUrl": "https://login.salesforce.com",
+  "sourceApiVersion": "65.0",
+  "packageAliases": {
+    "CactusUnlocked": "0HobV00000000mPSAQ" 
+  }
+}
