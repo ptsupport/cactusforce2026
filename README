@@ -1,2 +1,5 @@
-Unlocked Package Information for "Hitting the Limits" Session at Cactusforce 2026
+This repo is for the "Hitting the Limits" Session at Cactusforce 2026. 
+You can simply copy the code in here to recreate -- but use a different Trigger Framework or else convert the Apex Handler classes to Triggers. 
+Unlocked Package Information for "Hitting the Limits" Session at Cactusforce 2026.  If you use the unlocked package, it has dependency on Best Practices Toolkit Trigger Framework. 
+First install trial for "Best Practices Toolkit" (v102.0.0) on AppExchange unless you want to use your own TriggerHandler framework or else copy the Apex class code into a Trigger
 Package Install URL: https://login.salesforce.com/packaging/installPackage.apexp?p0=04tbV0000000UFpQAM
