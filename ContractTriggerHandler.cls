@@ -91,78 +91,82 @@ global class ContractTriggerHandler extends pform.TriggerHandler {
     }
     
     public override void beforeUpdate() {
-        updateContractOpptyEmails();
+        try {
+            updateContractOpptyEmails();
 
-        for (Contract ct : (List<Contract>)Trigger.new) {
-            acctIds.add(ct.AccountId);
-        }
-        
-        // comment out this line to fix the problem:
-        //BadApex.doSomethingBad(acctIds); // force limits situation  
-        
-        updateAcctsMap = new Map<Id,Account>([SELECT Id,Contract_Status__c,Type 
-                                              FROM Account WHERE Id IN: acctIds FOR UPDATE]); // FORCE LOCK
-        
-        // now lets get all the contracts for each Account in case we need to deactivate some
-        Map<Id,Contract> contractMap = new Map<Id,Contract>([SELECT Id,Sales_Status__C,AccountId FROM Contract 
-                                                             WHERE AccountId IN: updateAcctsMap.keyset() ]); //FOR UPDATE
-        Map<Id,Map<Id,Contract>> contractAcctMap = new Map<Id,Map<Id,Contract>>(); // first ID is Account ID
-        Map<Id,Contract> ctMap = new Map<Id,Contract>();
-        if (contractMap != null && contractMap.size() > 0) {
-            for (Contract ct : contractMap.values()) {
-                if (ct.AccountId == null) {
-                    continue;
-                }
-                ctMap = contractAcctMap.get(ct.AccountId);
-                if (ctMap == null || ctMap.size() == 0) {
-                    ctMap = new Map<Id,Contract>();
+            for (Contract ct : (List<Contract>)Trigger.new) {
+                acctIds.add(ct.AccountId);
+            }
+            
+            // comment out this line to fix the problem:
+            //BadApex.doSomethingBad(acctIds); // force limits situation  
+            
+            updateAcctsMap = new Map<Id,Account>([SELECT Id,Contract_Status__c,Type 
+                                                FROM Account WHERE Id IN: acctIds FOR UPDATE]); // FORCE LOCK
+            
+            // now lets get all the contracts for each Account in case we need to deactivate some
+            Map<Id,Contract> contractMap = new Map<Id,Contract>([SELECT Id,Sales_Status__C,AccountId FROM Contract 
+                                                                WHERE AccountId IN: updateAcctsMap.keyset() ]); //FOR UPDATE
+            Map<Id,Map<Id,Contract>> contractAcctMap = new Map<Id,Map<Id,Contract>>(); // first ID is Account ID
+            Map<Id,Contract> ctMap = new Map<Id,Contract>();
+            if (contractMap != null && contractMap.size() > 0) {
+                for (Contract ct : contractMap.values()) {
+                    if (ct.AccountId == null) {
+                        continue;
+                    }
+                    ctMap = contractAcctMap.get(ct.AccountId);
+                    if (ctMap == null || ctMap.size() == 0) {
+                        ctMap = new Map<Id,Contract>();
+                        ctMap.put(ct.Id,ct);
+                        contractAcctMap.put(ct.AccountId,ctMap); // save ctMap for this Account
+                    }
                     ctMap.put(ct.Id,ct);
                     contractAcctMap.put(ct.AccountId,ctMap); // save ctMap for this Account
                 }
-                ctMap.put(ct.Id,ct);
-                contractAcctMap.put(ct.AccountId,ctMap); // save ctMap for this Account
             }
-        }
 
-        ctMap = new Map<Id,Contract>(); // reset and reuse
+            ctMap = new Map<Id,Contract>(); // reset and reuse
 
-        Set<Id> conSet = new Set<Id>();
-        for (Contract ct : (List<Contract>)Trigger.new) {
-            Contract oldContract = (Contract)Trigger.OldMap.get(ct.Id);
-            Account acct = updateAcctsMap.get(ct.AccountId);
-            if (ct.Sales_Status__c == 'Activated' && oldContract.Sales_Status__c != 'Activated') {
-                System.debug('===ContractTrigger:Activated');             
-                acct.Contract_Status__c = 'Activated';
-                // make other contracts for this account DEACTIVATED
-                ctMap = contractAcctMap.get(ct.AccountId);
-                if (ctMap != null && ctMap.size() > 1) {
-                    for (Contract anotherCt : ctMap.values()) {
-                        if (anotherCt.Id != ct.Id) {
-                            conSet.add(anotherCt.Id);
+            Set<Id> conSet = new Set<Id>();
+            for (Contract ct : (List<Contract>)Trigger.new) {
+                Contract oldContract = (Contract)Trigger.OldMap.get(ct.Id);
+                Account acct = updateAcctsMap.get(ct.AccountId);
+                if (ct.Sales_Status__c == 'Activated' && oldContract.Sales_Status__c != 'Activated') {
+                    System.debug('===ContractTrigger:Activated');             
+                    acct.Contract_Status__c = 'Activated';
+                    // make other contracts for this account DEACTIVATED
+                    ctMap = contractAcctMap.get(ct.AccountId);
+                    if (ctMap != null && ctMap.size() > 1) {
+                        for (Contract anotherCt : ctMap.values()) {
+                            if (anotherCt.Id != ct.Id) {
+                                conSet.add(anotherCt.Id);
+                            }
                         }
                     }
-                }
-                updateAcctsMap.put(acct.Id,acct);
-            } else if (ct.Sales_Status__c == 'Deactivated' && oldContract.Sales_Status__c != 'Deactivated') {
-                System.debug('===ContractTriggerHandler:Deactivated');           
-                acct.Contract_Status__c = 'Deactivated';
-                updateAcctsMap.put(acct.Id,acct);            
-            } else if (ct.Sales_Status__c.contains('Pending') && !oldContract.Sales_Status__c.contains('Pending')) {
-                System.debug('===ContractTriggerHandler:Deactivated');           
-                acct.Contract_Status__c = 'Pending';
-                updateAcctsMap.put(acct.Id,acct);            
-            }              
-        }
+                    updateAcctsMap.put(acct.Id,acct);
+                } else if (ct.Sales_Status__c == 'Deactivated' && oldContract.Sales_Status__c != 'Deactivated') {
+                    System.debug('===ContractTriggerHandler:Deactivated');           
+                    acct.Contract_Status__c = 'Deactivated';
+                    updateAcctsMap.put(acct.Id,acct);            
+                } else if (ct.Sales_Status__c.contains('Pending') && !oldContract.Sales_Status__c.contains('Pending')) {
+                    System.debug('===ContractTriggerHandler:Deactivated');           
+                    acct.Contract_Status__c = 'Pending';
+                    updateAcctsMap.put(acct.Id,acct);            
+                }              
+            }
 
-        System.debug('===ContractTriggerHandler:UPDATING CON/OPP/ACCT RECORDS');         
-        if (conSet.size() > 0) { 
-            updateOtherContracts(conSet); // asynch
-        }
-        if (opptyMap.size() > 0) {
-        	update opptyMap.values();
-        }        
-        if (updateAcctsMap.size() > 0) {
-        	update updateAcctsMap.values();
+            System.debug('===ContractTriggerHandler:UPDATING CON/OPP/ACCT RECORDS');         
+            if (conSet.size() > 0) { 
+                updateOtherContracts(conSet); // asynch
+            }
+            if (opptyMap.size() > 0) {
+                update opptyMap.values();
+            }        
+            if (updateAcctsMap.size() > 0) {
+                update updateAcctsMap.values();
+            }
+        } catch (Exception exc) {
+            pform.ErrorHandler.logError('DEFAULT','ContractTriggerHandler:beforeUpdate', exc);
         }
     }
     
